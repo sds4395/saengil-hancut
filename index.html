@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>생일한컷 · 우리 아이 생일 포스터</title>
+<meta name="description" content="반려동물 사진 한 장으로 얼굴 그대로 생일 포스터를 만들어요.">
+<meta name="theme-color" content="#FF4F6D">
+<meta property="og:title" content="생일한컷">
+<meta property="og:description" content="우리 아이 얼굴 그대로, 생일 포스터 한 장">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23FF4F6D'/%3E%3Crect x='14' y='30' width='36' height='20' rx='4' fill='%23fff'/%3E%3Crect x='30' y='14' width='4' height='14' fill='%23FFD84D'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&family=Nanum+Pen+Script&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>생일<span>한컷</span></b><span class="beta">BETA</span></div>
+    <button class="btn ghost small petbtn" id="petBtn" type="button"><span class="dotmark" aria-hidden="true"></span><span id="petBtnLabel">내 아이 등록</span></button>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="미리보기">
+      <div class="frame">
+        <canvas id="out" width="1080" height="1350" aria-label="생일 포스터 미리보기"></canvas>
+        <span class="badge" id="sampleBadge">예시 사진</span>
+      </div>
+      <p class="hint">미리보기를 끌어서 아이 위치를 옮길 수 있어요</p>
+    </section>
+
+    <section class="panel">
+      <div class="block">
+        <h2><span class="no">1</span>우리 아이 사진</h2>
+        <div class="row">
+          <label class="btn primary file">사진 올리기<input id="file" type="file" accept="image/*"></label>
+          <button class="btn ghost" id="openEditor" type="button">배경 다듬기</button>
+        </div>
+        <p class="note"><strong>AI가 얼굴을 다시 그리지 않아요.</strong> 올린 사진의 배경만 지우고 원본 그대로 포스터에 붙여요. 배경이 단순한 사진일수록 깔끔하게 지워져요.</p>
+        <div class="slider"><span>크기</span><input id="scale" type="range" min="0.5" max="1.6" step="0.01" value="1"><output id="scaleOut">100%</output></div>
+        <div class="row" style="align-items:center">
+          <label class="switch"><span>흰 테두리 스티커</span><input id="outline" type="checkbox" checked></label>
+          <button class="btn ghost small" id="resetPos" type="button" style="flex:0 0 auto">위치 초기화</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2><span class="no">2</span>템플릿</h2>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <div class="block">
+        <h2><span class="no">3</span>기념일 정보</h2>
+        <label class="field"><span>이름</span><input class="input" id="name" maxlength="10" autocomplete="off"></label>
+        <div class="field"><span>우리 아이는</span>
+          <div class="seg" id="species"><button type="button" data-v="dog">강아지</button><button type="button" data-v="cat">고양이</button></div>
+        </div>
+        <div class="field"><span>어떤 날인가요</span>
+          <div class="seg" id="mode"><button type="button" data-v="birthday">생일</button><button type="button" data-v="gotcha">입양기념일</button><button type="button" data-v="days" id="daysBtn">견생 N일</button></div>
+        </div>
+        <label class="field"><span id="dateLabel">생일</span><input class="input" id="date" type="date"></label>
+        <label class="field"><span>한 줄 메시지 (선택)</span><input class="input" id="msg" maxlength="24" autocomplete="off"></label>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="bar-sum"><b id="sumTitle">보리</b><span id="sumSub">견생 1일째</span></div>
+    <button class="btn primary" id="make" type="button">이미지 만들기</button>
+  </div>
+</div>
+
+<div class="sheet" id="editor" hidden>
+  <div class="sheet-head">
+    <h3>배경 다듬기</h3>
+    <button class="btn ghost small" id="edCancel" type="button">취소</button>
+  </div>
+  <div class="canvas-wrap"><canvas id="edCanvas"></canvas></div>
+  <div class="tools">
+    <p class="note" style="margin:0">체크무늬로 보이는 곳이 지워진 부분이에요. 남은 배경은 <strong>지우기</strong>로, 잘못 지워진 털은 <strong>되살리기</strong>로 문질러 주세요.</p>
+    <div class="seg" id="brushMode"><button type="button" data-v="erase" aria-pressed="true">지우기</button><button type="button" data-v="restore" aria-pressed="false">되살리기</button></div>
+    <div class="slider"><span>브러시</span><input id="brush" type="range" min="6" max="70" value="26"><output id="brushOut">26</output></div>
+    <div class="slider"><span>배경 인식</span><input id="tol" type="range" min="8" max="70" value="30"><output id="tolOut">30</output></div>
+    <div class="row">
+      <button class="btn ghost" id="edUndo" type="button">되돌리기</button>
+      <button class="btn ghost" id="edAll" type="button">원본 전체 사용</button>
+      <button class="btn primary" id="edDone" type="button">완료</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="resultSheet" hidden>
+  <div class="sheet-head">
+    <h3 id="resultTitle">완성했어요</h3>
+    <button class="btn ghost small" id="resClose" type="button">다시 꾸미기</button>
+  </div>
+  <div class="sheet-body">
+    <img id="resultImg" class="result-img" alt="완성된 생일 포스터">
+    <p class="note"><strong>이미지를 길게 눌러 저장하세요.</strong> PC에서는 우클릭 후 ‘이미지 저장’을 누르면 돼요.</p>
+
+    <div class="block order">
+      <h2>이 디자인 그대로 실물로 받아보기</h2>
+      <p class="sub">출시 전 사전신청이에요. 지금은 결제하지 않고, 제작이 시작되면 연락드려요.</p>
+      <div class="seg" id="product">
+        <button type="button" data-v="banner_s">현수막 S</button>
+        <button type="button" data-v="banner_l">현수막 L</button>
+        <button type="button" data-v="topper">케이크 토퍼</button>
+      </div>
+      <div class="price"><b id="priceVal">15,000원</b><span id="priceDesc">60×90cm 패브릭 현수막 · 출시 예정가</span></div>
+      <label class="field"><span>연락받을 휴대폰 번호 또는 이메일</span><input class="input" id="orderContact" autocomplete="tel" inputmode="email" placeholder="010-0000-0000"></label>
+      <label class="check"><input type="checkbox" id="orderAgree"><span>제작·출시 안내를 위해 연락처를 저장하는 데 동의해요</span></label>
+      <button class="btn primary" id="orderBtn" type="button">현수막 S 사전신청</button>
+      <p class="status" id="orderStatus" role="status" hidden></p>
+    </div>
+
+    <div class="block">
+      <h2>인스타그램 캡션</h2>
+      <textarea class="cap" id="caption" readonly aria-label="인스타그램 캡션"></textarea>
+      <button class="btn ink" id="copyCap" type="button">캡션 복사</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="profileSheet" hidden>
+  <div class="sheet-head">
+    <h3>내 아이 등록</h3>
+    <button class="btn ghost small" id="pClose" type="button">닫기</button>
+  </div>
+  <div class="sheet-body">
+    <p class="note"><strong>기념일을 먼저 챙겨드려요.</strong> 생일과 입양일을 등록해 두면, 다가오는 날에 맞춰 포스터 만들 때를 알려드려요.</p>
+
+    <div class="block">
+      <h2>기본 정보</h2>
+      <label class="field"><span>이름</span><input class="input" id="pName" maxlength="10" autocomplete="off" placeholder="예: 보리"></label>
+      <div class="field"><span>우리 아이는</span>
+        <div class="seg" id="pSpecies"><button type="button" data-v="dog">강아지</button><button type="button" data-v="cat">고양이</button></div>
+      </div>
+      <div class="row">
+        <label class="field"><span>생일 (모르면 추정일)</span><input class="input" id="pBirth" type="date"></label>
+        <label class="field"><span>입양일 (선택)</span><input class="input" id="pAdopt" type="date"></label>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>다가오는 기념일</h2>
+      <ul class="ann" id="annList"></ul>
+    </div>
+
+    <div class="block">
+      <h2>알림 받을 날</h2>
+      <label class="check"><input type="checkbox" id="nBirth" checked><span>생일 7일 전</span></label>
+      <label class="check"><input type="checkbox" id="nGotcha" checked><span>입양기념일 3일 전</span></label>
+      <label class="check"><input type="checkbox" id="nHundred" checked><span id="nHundredLabel">견생 100일마다</span></label>
+      <label class="field"><span>알림 받을 휴대폰 번호 또는 이메일</span><input class="input" id="pContact" autocomplete="tel" inputmode="email" placeholder="010-0000-0000"></label>
+      <label class="check"><input type="checkbox" id="pAgree"><span>기념일 알림을 위해 연락처와 반려동물 정보를 저장하는 데 동의해요</span></label>
+    </div>
+
+    <button class="btn primary" id="pSave" type="button">저장하고 알림 받기</button>
+    <p class="status" id="pStatus" role="status" hidden></p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="js/settings.js"></script>
+<script src="js/config.js"></script>
+<script src="js/dates.js"></script>
+<script src="js/state.js"></script>
+<script src="js/cutout.js"></script>
+<script src="js/sample.js"></script>
+<script src="js/drawkit.js"></script>
+<script src="js/pet.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/export.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/order.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
